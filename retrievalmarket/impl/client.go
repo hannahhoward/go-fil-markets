@@ -2,7 +2,6 @@ package retrievalimpl
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"sync"
 
@@ -33,7 +32,10 @@ type client struct {
 }
 
 // NewClient creates a new retrieval client
-func NewClient(network rmnet.RetrievalMarketNetwork, bs blockstore.Blockstore, node retrievalmarket.RetrievalClientNode, resolver retrievalmarket.PeerResolver) retrievalmarket.RetrievalClient {
+func NewClient(network rmnet.RetrievalMarketNetwork,
+			   bs blockstore.Blockstore,
+			   node retrievalmarket.RetrievalClientNode,
+			   resolver retrievalmarket.PeerResolver) retrievalmarket.RetrievalClient {
 	return &client{network: network, bs: bs, node: node, resolver: resolver}
 }
 
@@ -42,13 +44,9 @@ func NewClient(network rmnet.RetrievalMarketNetwork, bs blockstore.Blockstore, n
 // TODO: Implement for retrieval provider V0 epic
 // https://github.com/filecoin-project/go-retrieval-market-project/issues/12
 func (c *client) FindProviders(pieceCIDBytes []byte) []retrievalmarket.RetrievalPeer {
-	cidLen, pieceCid, err := cid.CidFromBytes(pieceCIDBytes)
+	_, pieceCid, err := cid.CidFromBytes(pieceCIDBytes)
 	if err != nil {
 		log.Error(err)
-		return []retrievalmarket.RetrievalPeer{}
-	}
-	if cidLen == 0 {
-		log.Error(errors.New("zero-length CID"))
 		return []retrievalmarket.RetrievalPeer{}
 	}
 	peers, err := c.resolver.GetPeers(pieceCid)
