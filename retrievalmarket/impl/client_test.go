@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/filecoin-project/go-address"
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	dss "github.com/ipfs/go-datastore/sync"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
@@ -56,7 +57,7 @@ func TestClient_Query(t *testing.T) {
 		net := tut.NewTestRetrievalMarketNetwork(tut.TestNetworkParams{
 			QueryStreamBuilder: tut.ExpectPeerOnQueryStreamBuilder(t, expectedPeer, qsb, "Peers should match"),
 		})
-		c := retrievalimpl.NewClient(net, bs, &testRetrievalNode{})
+		c := retrievalimpl.NewClient(net, bs, &testRetrievalNode{}, &testPeerResolver{})
 
 		resp, err := c.Query(ctx, rpeer, pcid, retrievalmarket.QueryParams{})
 		require.NoError(t, err)
@@ -68,7 +69,7 @@ func TestClient_Query(t *testing.T) {
 		net := tut.NewTestRetrievalMarketNetwork(tut.TestNetworkParams{
 			QueryStreamBuilder: tut.FailNewQueryStream,
 		})
-		c := retrievalimpl.NewClient(net, bs, &testRetrievalNode{})
+		c := retrievalimpl.NewClient(net, bs, &testRetrievalNode{}, &testPeerResolver{})
 
 		_, err := c.Query(ctx, rpeer, pcid, retrievalmarket.QueryParams{})
 		assert.EqualError(t, err, "new query stream failed")
@@ -87,7 +88,7 @@ func TestClient_Query(t *testing.T) {
 		net := tut.NewTestRetrievalMarketNetwork(tut.TestNetworkParams{
 			QueryStreamBuilder: qsbuilder,
 		})
-		c := retrievalimpl.NewClient(net, bs, &testRetrievalNode{})
+		c := retrievalimpl.NewClient(net, bs, &testRetrievalNode{}, &testPeerResolver{})
 
 		statusCode, err := c.Query(ctx, rpeer, pcid, retrievalmarket.QueryParams{})
 		assert.EqualError(t, err, "write query failed")
@@ -105,7 +106,7 @@ func TestClient_Query(t *testing.T) {
 		net := tut.NewTestRetrievalMarketNetwork(tut.TestNetworkParams{
 			QueryStreamBuilder: qsbuilder,
 		})
-		c := retrievalimpl.NewClient(net, bs, &testRetrievalNode{})
+		c := retrievalimpl.NewClient(net, bs, &testRetrievalNode{}, &testPeerResolver{})
 
 		statusCode, err := c.Query(ctx, rpeer, pcid, retrievalmarket.QueryParams{})
 		assert.EqualError(t, err, "query response failed")
@@ -127,3 +128,13 @@ func (t *testRetrievalNode) AllocateLane(paymentChannel address.Address) (uint64
 func (t *testRetrievalNode) CreatePaymentVoucher(ctx context.Context, paymentChannel address.Address, amount tokenamount.TokenAmount, lane uint64) (*types.SignedVoucher, error) {
 	return nil, nil
 }
+
+type testPeerResolver struct {
+	peers []retrievalmarket.RetrievalPeer
+}
+var _ retrievalmarket.PeerResolver = &testPeerResolver{}
+
+func (t testPeerResolver) GetPeers(data cid.Cid) ([]retrievalmarket.RetrievalPeer, error) {
+	return t.peers, nil
+}
+
