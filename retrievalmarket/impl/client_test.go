@@ -116,7 +116,7 @@ func TestClient_Query(t *testing.T) {
 type testRetrievalNode struct {
 }
 
-func (t *testRetrievalNode) GetOrCreatePaymentChannel(ctx context.Context, clientAddress address.Address, minerAddress address.Address, clientFundsAvailable tokenamount.TokenAmount) (address.Address, error) {
+func (t *testRetrievalNode)  GetOrCreatePaymentChannel(ctx context.Context, clientAddress address.Address, minerAddress address.Address, clientFundsAvailable tokenamount.TokenAmount) (address.Address, error) {
 	return address.Address{}, nil
 }
 

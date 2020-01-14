@@ -56,7 +56,7 @@ func TestHandleQueryStream(t *testing.T) {
 			PieceCID: pcid,
 		})
 		require.NoError(t, err)
-		node := newTestRetrievalProviderNode()
+		node := newTestRetrievalProviderNode(nil)
 		node.expectPiece(pcid, expectedSize)
 
 		receiveStreamOnProvider(qs, node)
@@ -78,7 +78,7 @@ func TestHandleQueryStream(t *testing.T) {
 			PieceCID: pcid,
 		})
 		require.NoError(t, err)
-		node := newTestRetrievalProviderNode()
+		node := newTestRetrievalProviderNode(nil)
 		node.expectMissingPiece(pcid)
 
 		receiveStreamOnProvider(qs, node)
@@ -99,7 +99,7 @@ func TestHandleQueryStream(t *testing.T) {
 			PieceCID: pcid,
 		})
 		require.NoError(t, err)
-		node := newTestRetrievalProviderNode()
+		node := newTestRetrievalProviderNode(nil)
 
 		receiveStreamOnProvider(qs, node)
 
@@ -112,7 +112,7 @@ func TestHandleQueryStream(t *testing.T) {
 
 	t.Run("when ReadQuery fails", func(t *testing.T) {
 		qs := readWriteQueryStream()
-		node := newTestRetrievalProviderNode()
+		node := newTestRetrievalProviderNode(nil)
 		receiveStreamOnProvider(qs, node)
 
 		response, err := qs.ReadQueryResponse()
@@ -133,7 +133,7 @@ func TestHandleQueryStream(t *testing.T) {
 			PieceCID: pcid,
 		})
 		require.NoError(t, err)
-		node := newTestRetrievalProviderNode()
+		node := newTestRetrievalProviderNode(nil)
 		node.expectPiece(pcid, expectedSize)
 
 		receiveStreamOnProvider(qs, node)
@@ -143,14 +143,16 @@ func TestHandleQueryStream(t *testing.T) {
 }
 
 type testRetrievalProviderNode struct {
+	bstore                *blockstore.Blockstore
 	expectedPieces        map[string]uint64
 	expectedMissingPieces map[string]struct{}
 	receivedPiecesSizes   map[string]struct{}
 	receivedMissingPieces map[string]struct{}
 }
 
-func newTestRetrievalProviderNode() *testRetrievalProviderNode {
+func newTestRetrievalProviderNode(bstore *blockstore.Blockstore) *testRetrievalProviderNode {
 	return &testRetrievalProviderNode{
+		bstore: bstore,
 		expectedPieces:        make(map[string]uint64),
 		expectedMissingPieces: make(map[string]struct{}),
 		receivedPiecesSizes:   make(map[string]struct{}),
@@ -187,7 +189,13 @@ func (trpn *testRetrievalProviderNode) GetPieceSize(pieceCid []byte) (uint64, er
 }
 
 func (trpn *testRetrievalProviderNode) SealedBlockstore(approveUnseal func() error) blockstore.Blockstore {
-	panic("not implemented")
+	if trpn.bstore == nil {
+		panic("blockstore is nil")
+	}
+	if err := approveUnseal(); err != nil {
+		panic("approveUnseal failed: " + err.Error())
+	}
+	return *trpn.bstore
 }
 
 func (trpn *testRetrievalProviderNode) SavePaymentVoucher(ctx context.Context, paymentChannel address.Address, voucher *types.SignedVoucher, proof []byte, expectedAmount tokenamount.TokenAmount) (tokenamount.TokenAmount, error) {
