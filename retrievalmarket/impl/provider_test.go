@@ -148,6 +148,7 @@ type testRetrievalProviderNode struct {
 	expectedMissingPieces map[string]struct{}
 	receivedPiecesSizes   map[string]struct{}
 	receivedMissingPieces map[string]struct{}
+	savedVouchers map[string]*types.SignedVoucher
 }
 
 func newTestRetrievalProviderNode(bstore *blockstore.Blockstore) *testRetrievalProviderNode {
@@ -157,6 +158,7 @@ func newTestRetrievalProviderNode(bstore *blockstore.Blockstore) *testRetrievalP
 		expectedMissingPieces: make(map[string]struct{}),
 		receivedPiecesSizes:   make(map[string]struct{}),
 		receivedMissingPieces: make(map[string]struct{}),
+		savedVouchers: make(map[string]*types.SignedVoucher),
 	}
 }
 
@@ -192,12 +194,14 @@ func (trpn *testRetrievalProviderNode) SealedBlockstore(approveUnseal func() err
 	if trpn.bstore == nil {
 		panic("blockstore is nil")
 	}
-	if err := approveUnseal(); err != nil {
-		panic("approveUnseal failed: " + err.Error())
-	}
 	return *trpn.bstore
 }
 
 func (trpn *testRetrievalProviderNode) SavePaymentVoucher(ctx context.Context, paymentChannel address.Address, voucher *types.SignedVoucher, proof []byte, expectedAmount tokenamount.TokenAmount) (tokenamount.TokenAmount, error) {
-	panic("not implemented")
+	_, ok := trpn.savedVouchers[paymentChannel.String()]
+	if ok {
+		return tokenamount.TokenAmount{}, errors.New("voucher already saved")
+	}
+	trpn.savedVouchers[paymentChannel.String()] = voucher
+	return expectedAmount, nil
 }
